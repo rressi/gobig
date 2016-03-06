@@ -2,7 +2,6 @@ package big
 
 
 import (
-	"sort"
 	"testing"
 	"os"
 	"bufio"
@@ -11,34 +10,29 @@ import (
 func TestRadixSortStrings(t *testing.T) {
 
 
-	testItems := func(items StringSlice) {
-		sortedItems := RadixSort(items)
-		last := ""
+	testItems := func(items []string) {
+		out := RadixSortStrings(items)
 
-		i := 0
-		for bucket := range(sortedItems) {
+		positions := make(map[int]bool)
+		prevItem := ""
 
-			num := bucket.Len()
-			if num < 1 {
-				t.Errorf("Bucket %v is empty (%v)", i, bucket)
-				i++
-				continue
+		for index := range(out) {
+
+			if index >= len(items) {
+				t.Errorf("Invalid index %i", index)
 			}
-			// fmt.Println(i)
-			// fmt.Println("   Len:  ", num)
 
-			first := bucket.Get(0).(string)
-			if first < last {
-				t.Errorf("Bucket %v is misplaced (%v)", i, bucket)
+			item := items[index]
+			if item < prevItem {
+				t.Errorf("Misplaced index %i", index)
 			}
-			if (!sort.IsSorted(bucket)) {
-				t.Errorf("Bucket %v is not sorted (%v)", i, bucket)
-			}
-			last = bucket.Get(bucket.Len() - 1).(string)
-			i++
 
-			// fmt.Println("   First:", first)
-			// fmt.Println("   Last: ", last)
+			_, found := positions[index]
+			if found {
+				t.Errorf("Index %i repeated", index)
+			}
+
+			positions[index] = true
 		}
 	}
 
@@ -47,7 +41,7 @@ func TestRadixSortStrings(t *testing.T) {
 }
 
 
-func loadLines(path string, t *testing.T) StringSlice {
+func loadLines(path string, t *testing.T) []string {
 
 	items := make([]string, 0)
 	fd, err := os.Open(path)
@@ -66,5 +60,5 @@ func loadLines(path string, t *testing.T) StringSlice {
 		t.Fatalf("Cannot scan file: %v", err)
 	}
 
-	return StringSlice(items)
+	return items
 }
