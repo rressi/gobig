@@ -2,28 +2,26 @@ package big
 
 import (
 	"sort"
-	"fmt"
 )
-
 
 // StringSlice attaches the methods of RadixSortable to []string, sorting in increasing order.
 type StringSlice []string
 
-func (p StringSlice) Len() int { return len(p) }
+func (p StringSlice) Len() int           { return len(p) }
 func (p StringSlice) Less(i, j int) bool { return p[i] < p[j] }
-func (p StringSlice) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+func (p StringSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p StringSlice) RadixKey(i int) (key int) {
 
 	item := p[i]
-	switch(len(item)) {
+	switch len(item) {
 	case 0:
 		key = 0
 	case 1:
-		key =  (1 << 16) * int(item[0])
+		key = (1 << 16) * int(item[0])
 	case 2:
-		key =  (1 << 16) * int(item[0]) + (1 << 8) * int(item[1])
+		key = (1<<16)*int(item[0]) + (1<<8)*int(item[1])
 	default:
-		key =  (1 << 16) * int(item[0]) + (1 << 8) * int(item[1]) + int(item[2])
+		key = (1<<16)*int(item[0]) + (1<<8)*int(item[1]) + int(item[2])
 	}
 
 	return int(key)
@@ -37,13 +35,11 @@ func RadixSortStrings(items []string) <-chan int {
 // ---------------------------------------------------------------------------------------------------------------------
 
 type RadixSortable interface {
-
 	sort.Interface
 
 	// Returns the radix-key of the passed element.
 	RadixKey(i int) int
 }
-
 
 func RadixSort(objects RadixSortable) <-chan int {
 
@@ -73,7 +69,7 @@ func RadixSort(objects RadixSortable) <-chan int {
 				buc.items = append(buc.items, index)
 			}
 			sort.Sort(buc)
-			for _, index := range(buc.items) {
+			for _, index := range buc.items {
 				out <- index
 			}
 			break
@@ -92,9 +88,9 @@ func RadixSort(objects RadixSortable) <-chan int {
 
 type bucket struct {
 	objects RadixSortable
-	items []int
-	pos int
-	sorted bool
+	items   []int
+	pos     int
+	sorted  bool
 }
 
 func (p bucket) Len() int {
@@ -111,10 +107,11 @@ func (p bucket) Swap(i, j int) {
 
 func newBucket(objects RadixSortable) *bucket {
 
-	return &bucket { objects: objects,
-		         items:   make([]int, 0),
-		         pos:     0,
-		         sorted:  false }
+	return &bucket{
+		objects: objects,
+		items:   make([]int, 0),
+		pos:     0,
+		sorted:  false}
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -122,10 +119,10 @@ func newBucket(objects RadixSortable) *bucket {
 func radixSort(out chan int, objects RadixSortable) {
 
 	numObjects := objects.Len()
-	fmt.Println("Num objects:", numObjects)
+	// fmt.Println("Num objects:", numObjects)
 
 	// Generates buckets:
-	buckets := make(map [int]*bucket)
+	buckets := make(map[int]*bucket)
 	for i := 0; i < numObjects; i++ {
 		key := objects.RadixKey(i)
 		buc, ok := buckets[key]
@@ -138,11 +135,11 @@ func radixSort(out chan int, objects RadixSortable) {
 		}
 	}
 	numBuckets := len(buckets)
-	fmt.Println("Num buckets:", numBuckets)
+	// fmt.Println("Num buckets:", numBuckets)
 
 	// Sorts buckets concurrently:
 	bucketSorted := make(chan *bucket, numBuckets)
-	for _, buc := range(buckets) {
+	for _, buc := range buckets {
 		go func(buc *bucket) {
 			sort.Sort(*buc)
 			bucketSorted <- buc
@@ -151,18 +148,18 @@ func radixSort(out chan int, objects RadixSortable) {
 
 	// Assigns to each bucket its positional order:
 	keys := make([]int, 0, numBuckets)
-	for key := range(buckets) {
+	for key := range buckets {
 		keys = append(keys, key)
 	}
 	sort.Ints(keys)
-	for i, key := range(keys) {
+	for i, key := range keys {
 		buckets[key].pos = i
 	}
 
 	// Collects sorted buckets:
 	var nextToReturn int
 	for numBuckets > 0 {
-		buc := <- bucketSorted
+		buc := <-bucketSorted
 		buc.sorted = true
 		numBuckets--
 
@@ -172,7 +169,7 @@ func radixSort(out chan int, objects RadixSortable) {
 		}
 
 		// Returns all indices from current bucket:
-		for _, index := range(buc.items) {
+		for _, index := range buc.items {
 			out <- index
 		}
 		nextToReturn++
@@ -183,7 +180,7 @@ func radixSort(out chan int, objects RadixSortable) {
 			if !buc.sorted {
 				break
 			}
-			for _, index := range(buc.items) {
+			for _, index := range buc.items {
 				out <- index
 			}
 			nextToReturn++
@@ -192,4 +189,3 @@ func radixSort(out chan int, objects RadixSortable) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-
