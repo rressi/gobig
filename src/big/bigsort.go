@@ -18,12 +18,12 @@ type StringSlice []string
 func (p StringSlice) Len() int           { return len(p) }
 func (p StringSlice) Less(i, j int) bool { return p[i] < p[j] }
 func (p StringSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func (p StringSlice) RadixKey(i int) (key uint32) {
+func (p StringSlice) RadixKey(i int) (key uint64) {
 
 	item := p[i]
-	var multiplier uint32 = 1 << 24
-	for j := 0; j < 4 && j < len(item); j++ {
-		key += uint32(item[j]) * multiplier
+	var multiplier uint64 = 1 << 56
+	for j := 0; j < 8 && j < len(item); j++ {
+		key += uint64(item[j]) * multiplier
 		multiplier >>= 8
 	}
 
@@ -41,7 +41,7 @@ type RadixSortable interface {
 	sort.Interface
 
 	// Returns the radix-key of the passed element.
-	RadixKey(i int) uint32
+	RadixKey(i int) uint64
 }
 
 func RadixSort(objects RadixSortable) <-chan int {
@@ -72,7 +72,7 @@ func RadixSort(objects RadixSortable) <-chan int {
 // ---------------------------------------------------------------------------------------------------------------------
 
 type index struct {
-	key uint32
+	key uint64
 	idx int
 }
 
@@ -130,8 +130,9 @@ func radixSort(out chan int, objects RadixSortable, isBigProblem bool) {
 	}
 	for i := 0; i < numObjects; i++ {
 		key := objects.RadixKey(i)
-		buc := &buckets[key & uint32(numBuckets - 1)]
-		buc.items = append(buc.items, index{key:key, idx:i})
+		bucketPos := key & uint64(numBuckets - 1)
+		bucketPt := &buckets[bucketPos]
+		bucketPt.items = append(bucketPt.items, index{key:key, idx:i})
 	}
 
 	// Sorts buckets concurrently:
