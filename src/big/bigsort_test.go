@@ -14,32 +14,49 @@ const BIG_FILE = "../../big.txt"
 
 func TestRadixSortStrings(t *testing.T) {
 
+	sortTraces = true
+	defer func() {
+		sortTraces = false
+	}()
+
 	testItems := func(items []string) {
 		out := RadixSortStrings(items)
+
+		sortTrace("Testing with %v items", len(items))
+
 
 		positions := make(map[int]bool)
 		prevItem := ""
 
+		var numItems int
 		for index := range out {
 
 			if index >= len(items) {
-				t.Errorf("Invalid index %i", index)
+				t.Errorf("Invalid index %v", index)
 			}
 
 			item := items[index]
 			if item < prevItem {
-				t.Errorf("Misplaced index %i", index)
+				t.Errorf("Misplaced index %v", index)
 			}
 
 			_, found := positions[index]
 			if found {
-				t.Errorf("Index %i repeated", index)
+				t.Errorf("Index %v repeated", index)
 			}
 
 			positions[index] = true
+			numItems++
 		}
+
+		if numItems != len(items) {
+			t.Errorf("%v items returned, %v expected", numItems, len(items))
+		}
+
 	}
 
+	testItems(nil)
+	testItems([]string{})
 	testItems(loadLines(SMALL_FILE, t))
 	testItems(loadLines(BIG_FILE, t))
 }
@@ -178,6 +195,9 @@ type FatalCaller interface {
 // ---------------------------------------------------------------------------------------------------------------------
 
 func loadLines(path string, fatal FatalCaller) []string {
+
+	sortTrace("Loading '%v'...", path)
+	defer sortTrace("   ...done")
 
 	items, ok := cachedFiles[path]
 	if ok {
