@@ -20,6 +20,7 @@ func TestRadixSortStrings(t *testing.T) {
 		positions := make(map[int]bool)
 		prevItem := ""
 
+		var numReturned int
 		for index := range out {
 
 			if index >= len(items) {
@@ -37,6 +38,11 @@ func TestRadixSortStrings(t *testing.T) {
 			}
 
 			positions[index] = true
+			numReturned++
+		}
+
+		if numReturned < len(items) {
+			t.Errorf("Index %v elements returned, %v expected", numReturned, len(items))
 		}
 	}
 

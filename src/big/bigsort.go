@@ -159,10 +159,9 @@ func radixSort(out chan int, objects RadixSortable) {
 
 	// Collects sorted buckets:
 	var nextToReturn int
-	for numBuckets > 0 {
+	for i := 0; i < numBuckets; i++ {
 		buc := <-bucketSorted
 		buc.sorted = true
-		numBuckets--
 
 		bucketPos := buc.pos
 		if bucketPos != nextToReturn {
@@ -187,6 +186,17 @@ func radixSort(out chan int, objects RadixSortable) {
 			nextToReturn++
 		}
 	}
+
+	for i := nextToReturn; i < numBuckets; i++ {
+		buc := buckets[keys[i]]
+		if !buc.sorted {
+			break
+		}
+		for _, index := range buc.items {
+			out <- index
+		}
+	}
+
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
