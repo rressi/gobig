@@ -1,14 +1,15 @@
 package big
 
 import (
-	"sort"
 	"fmt"
+	"sort"
 )
 
 var sortTraces = false
+
 func sortTrace(format string, a ...interface{}) {
 	if sortTraces {
-		fmt.Printf(format + "\n", a...)
+		fmt.Printf(format+"\n", a...)
 	}
 }
 
@@ -125,15 +126,17 @@ func radixSort(out chan int, objects RadixSortable, isBigProblem bool) {
 
 	// Fills buckets:
 	buckets := make([]bucket, numBuckets)
-	for i := 0; i < numBuckets; i++ {
-		buckets[i].objects = objects
-	}
-	for i := 0; i < numObjects; i++ {
-		key := objects.RadixKey(i)
-		bucketPos := key & uint64(numBuckets - 1)
-		bucketPt := &buckets[bucketPos]
-		bucketPt.items = append(bucketPt.items, index{key:key, idx:i})
-	}
+	func() {
+		for i := 0; i < numBuckets; i++ {
+			buckets[i].objects = objects
+		}
+		for i := 0; i < numObjects; i++ {
+			key := objects.RadixKey(i)
+			bucketPos := key & uint64(numBuckets-1)
+			bucketPt := &buckets[bucketPos]
+			bucketPt.items = append(bucketPt.items, index{key: key, idx: i})
+		}
+	}()
 
 	// Sorts buckets concurrently:
 	numRunners := numBuckets / BUCKETS_PER_RUNNER
@@ -147,8 +150,8 @@ func radixSort(out chan int, objects RadixSortable, isBigProblem bool) {
 			bucketPt := &buckets[i]
 			bucketSize := bucketPt.Len()
 			switch bucketSize {
-			case  0:
-			case  1:
+			case 0:
+			case 1:
 				out <- bucketPt.items[0].idx
 			default:
 				sort.Sort(bucketPt)
@@ -160,13 +163,15 @@ func radixSort(out chan int, objects RadixSortable, isBigProblem bool) {
 
 	default:
 		// Spares concurrent sorters:
-		bucketSorted := make(chan int, numBuckets)
+		bucketSorted := make(chan int, numRunners)
 		for i := 0; i < numBuckets; i += BUCKETS_PER_RUNNER {
 			go func(from int) {
 				to := from + BUCKETS_PER_RUNNER
 				for j := from; j < to; j++ {
 					bucketPt := &buckets[j]
-					sort.Sort(bucketPt)
+					if bucketPt.Len() > 1 {
+						sort.Sort(bucketPt)
+					}
 					bucketSorted <- j
 				}
 			}(i)
@@ -174,37 +179,40 @@ func radixSort(out chan int, objects RadixSortable, isBigProblem bool) {
 
 		// Collects sorted buckets:
 		var nextToReturn int
-		for i := 0; i < numBuckets; i++ {
+		func() {
+			for i := 0; i < numBuckets; i++ {
 
-			// Fetches next sorted bucket:
-			bucketPos := <-bucketSorted
-			bucketPt := &buckets[bucketPos]
-			bucketPt.sorted = true
-			// sortTrace("Sorted bucket: %v", bucketPos)
+				// Fetches next sorted bucket:
+				bucketPos := <-bucketSorted
+				bucketPt := &buckets[bucketPos]
+				bucketPt.sorted = true
+				// sortTrace("Sorted bucket: %v", bucketPos)
 
-			// If possible returns all sorted indices from current bucket:
-			if bucketPos == nextToReturn {
-				for bucketPt.sorted {
-					bucketPt = &buckets[bucketPos]
-					for _, index := range bucketPt.items {
-						out <- index.idx
+				// If possible returns all sorted indices from current bucket:
+				if bucketPos == nextToReturn {
+					for bucketPt.sorted {
+						bucketPt = &buckets[bucketPos]
+						for _, index := range bucketPt.items {
+							out <- index.idx
+						}
+						// sortTrace("Bucket completed: %v", bucketPos)
+						nextToReturn++
+						bucketPos++
 					}
-					// sortTrace("Bucket completed: %v", bucketPos)
-					nextToReturn++
-					bucketPos++
 				}
 			}
-		}
+		}()
 
 		// Returns missing buckets:
-		for i := nextToReturn; i < numBuckets; i++ {
-			bucketPt := &buckets[i]
-			for _, index := range bucketPt.items {
-				out <- index.idx
+		func() {
+			for i := nextToReturn; i < numBuckets; i++ {
+				bucketPt := &buckets[i]
+				for _, index := range bucketPt.items {
+					out <- index.idx
+				}
+				// sortTrace("Bucket completed later: %v", i)
 			}
-			// sortTrace("Bucket completed later: %v", i)
-		}
-
+		}()
 	}
 }
 
