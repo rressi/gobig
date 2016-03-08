@@ -3,8 +3,8 @@ package big
 import (
 	"bufio"
 	"os"
-	"testing"
 	"sort"
+	"testing"
 )
 
 var cachedFiles map[string][]string = make(map[string][]string)
@@ -160,7 +160,7 @@ func prepareInputs(numTests, numElements int, b *testing.B) [][]string {
 	inputs := make([][]string, numTests)
 	for n := 0; n < b.N; n++ {
 		linesN := make([]string, 0, numElements)
-		for _, line := range (lines[:numElements]) {
+		for _, line := range lines[:numElements] {
 			linesN = append(linesN, line)
 		}
 		inputs[n] = linesN

@@ -13,6 +13,7 @@ func (p StringSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p StringSlice) RadixKey(i int) (key int) {
 
 	item := p[i]
+
 	switch len(item) {
 	case 0:
 		key = 0
@@ -53,7 +54,7 @@ func RadixSort(objects RadixSortable) <-chan int {
 			return
 		}
 
-		const MIN_SIZE = 10000
+		const MIN_SIZE = 1000
 
 		numObjects := objects.Len()
 		switch {
@@ -62,7 +63,7 @@ func RadixSort(objects RadixSortable) <-chan int {
 		case numObjects == 0:
 			break
 
-		// For a simple problem, a simple solution:
+		// For a simple problem, a simpler solution:
 		case numObjects < MIN_SIZE:
 			buc := newBucket(objects)
 			for index := 0; index < numObjects; index++ {
@@ -93,15 +94,15 @@ type bucket struct {
 	sorted  bool
 }
 
-func (p bucket) Len() int {
+func (p *bucket) Len() int {
 	return len(p.items)
 }
-func (p bucket) Less(i, j int) bool {
+func (p *bucket) Less(i, j int) bool {
 	i1 := p.items[i]
 	j1 := p.items[j]
 	return p.objects.Less(i1, j1)
 }
-func (p bucket) Swap(i, j int) {
+func (p *bucket) Swap(i, j int) {
 	p.items[i], p.items[j] = p.items[j], p.items[i]
 }
 
@@ -141,7 +142,7 @@ func radixSort(out chan int, objects RadixSortable) {
 	bucketSorted := make(chan *bucket, numBuckets)
 	for _, buc := range buckets {
 		go func(buc *bucket) {
-			sort.Sort(*buc)
+			sort.Sort(buc)
 			bucketSorted <- buc
 		}(buc)
 	}
