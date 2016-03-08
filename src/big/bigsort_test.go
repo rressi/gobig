@@ -14,15 +14,15 @@ const BIG_FILE = "../../big.txt"
 
 func TestRadixSortStrings(t *testing.T) {
 
-	sortTraces = true
+	sortTraceFunc = t.Logf
 	defer func() {
-		sortTraces = false
+		sortTraceFunc = nil
 	}()
 
 	testItems := func(items []string) {
 		out := RadixSortStrings(items)
 
-		sortTrace("Testing with %v items", len(items))
+		t.Logf("Testing with %v items", len(items))
 
 
 		positions := make(map[int]bool)
@@ -58,6 +58,11 @@ func TestRadixSortStrings(t *testing.T) {
 	testItems(nil)
 	testItems([]string{})
 	testItems(loadLines(SMALL_FILE, t))
+	// testItems(loadLines(BIG_FILE, t)[:1000])
+	// testItems(loadLines(BIG_FILE, t)[:10000])
+	// testItems(loadLines(BIG_FILE, t)[:100000])
+	// testItems(loadLines(BIG_FILE, t)[:1000000])
+	// testItems(loadLines(BIG_FILE, t)[:10000000])
 	testItems(loadLines(BIG_FILE, t))
 }
 
@@ -188,16 +193,17 @@ func prepareInputs(numTests, numElements int, b *testing.B) [][]string {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-type FatalCaller interface {
+type abstractTest interface {
 	Fatalf(format string, args ...interface{})
+	Logf(format string, args ...interface{})
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-func loadLines(path string, fatal FatalCaller) []string {
+func loadLines(path string, test abstractTest) []string {
 
-	sortTrace("Loading '%v'...", path)
-	defer sortTrace("   ...done")
+	test.Logf("Loading '%v'...", path)
+	defer test.Logf("   ...done")
 
 	items, ok := cachedFiles[path]
 	if ok {
@@ -207,7 +213,7 @@ func loadLines(path string, fatal FatalCaller) []string {
 	fd, err := os.Open(path)
 	if err != nil {
 		workDirectory, _ := os.Getwd()
-		fatal.Fatalf("Cannot open file (cwd is '%v'): %v", workDirectory, err)
+		test.Fatalf("Cannot open file (cwd is '%v'): %v", workDirectory, err)
 	}
 	defer fd.Close()
 
@@ -217,7 +223,7 @@ func loadLines(path string, fatal FatalCaller) []string {
 	}
 	err = scan.Err()
 	if err != nil {
-		fatal.Fatalf("Cannot scan file: %v", err)
+		test.Fatalf("Cannot scan file: %v", err)
 	}
 
 	cachedFiles[path] = items
