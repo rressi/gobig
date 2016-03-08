@@ -58,11 +58,11 @@ func TestRadixSortStrings(t *testing.T) {
 	testItems(nil)
 	testItems([]string{})
 	testItems(loadLines(SMALL_FILE, t))
-	// testItems(loadLines(BIG_FILE, t)[:1000])
-	// testItems(loadLines(BIG_FILE, t)[:10000])
-	// testItems(loadLines(BIG_FILE, t)[:100000])
-	// testItems(loadLines(BIG_FILE, t)[:1000000])
-	// testItems(loadLines(BIG_FILE, t)[:10000000])
+	testItems(loadLines(BIG_FILE, t)[:1000])
+	testItems(loadLines(BIG_FILE, t)[:10000])
+	testItems(loadLines(BIG_FILE, t)[:100000])
+	testItems(loadLines(BIG_FILE, t)[:1000000])
+	testItems(loadLines(BIG_FILE, t)[:10000000])
 	testItems(loadLines(BIG_FILE, t))
 }
 
